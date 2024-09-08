@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/stutkhd-0709/go_todo_app/config"
 	"golang.org/x/sync/errgroup"
 	"log"
 	"net"
@@ -11,33 +12,25 @@ import (
 	"os"
 )
 
-//func main() {
-//	err := http.ListenAndServe(":18080", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//		fmt.Fprintf(w, "Hello World")
-//	}))
-//	if err != nil {
-//		fmt.Println("failed to terminate server: %w", err)
-//		os.Exit(1)
-//	}
-//}
-
 func main() {
-	if len(os.Args) != 2 {
-		log.Printf("need port number\n")
-		os.Exit(1)
-	}
-	p := os.Args[1]
-	l, err := net.Listen("tcp", ":"+p)
-	if err != nil {
-		log.Fatalf("failed to listen port %s: %v", p, err)
-	}
-	if err := run(context.Background(), l); err != nil {
+	if err := run(context.Background()); err != nil {
 		log.Printf("failed to terminate server: %v", err)
 		os.Exit(1)
 	}
 }
 
-func run(ctx context.Context, l net.Listener) error {
+func run(ctx context.Context) error {
+	cfg, err := config.New()
+	if err != nil {
+		return err
+	}
+	l, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Port))
+	if err != nil {
+		log.Fatalf("failed to listen port %d: %v", cfg.Port, err)
+	}
+	url := fmt.Sprintf("http://%s", l.Addr().String())
+	log.Printf("start with: %v", url)
+
 	// *http.Serverを使うことで、サーバーのタイムアウト時間など柔軟に変えられるため、ListenAndServe関数より実用的
 	// 関数 -> パッケージが提供してる関数
 	// メソッド -> 構造体に紐づいている関数
