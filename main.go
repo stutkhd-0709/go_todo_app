@@ -10,6 +10,9 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 func main() {
@@ -20,6 +23,10 @@ func main() {
 }
 
 func run(ctx context.Context) error {
+	// シグナルの受信を検知できるようにする
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	cfg, err := config.New()
 	if err != nil {
 		return err
@@ -39,6 +46,8 @@ func run(ctx context.Context) error {
 		// Addrフィールドは指定しない
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "Hello, %s!", r.URL.Path[1:])
+			// コマンドラインで実験するため
+			time.Sleep(5 * time.Second)
 		}),
 	}
 
@@ -57,6 +66,7 @@ func run(ctx context.Context) error {
 
 	// チャネルからの通知(終了通知)を待機する
 	<-ctx.Done()
+	// ShutdownメソッドはGraceful Shutdownする
 	if err := s.Shutdown(context.Background()); err != nil {
 		log.Printf("failed to shutdown server: %v", err)
 	}
