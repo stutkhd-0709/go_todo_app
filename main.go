@@ -23,7 +23,7 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	// シグナルの受信を検知できるようにする
+	// シグナルの受信を検知できるようにする -> graceful shutdownができるようになる
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -53,7 +53,7 @@ func run(ctx context.Context) error {
 
 	eg, ctx := errgroup.WithContext(ctx)
 	// 別ゴルーチンでHTTPサーバーを起動
-	// http.ErrServerClosed は http.Server.Shutdown() が正常に終了したことを表すため以上ではない
+	// http.ErrServerClosed は http.Server.Shutdown() が正常に終了したことを表すため異常ではない
 	eg.Go(func() error {
 		// ListenAndServe -> *http.ServerでAddrを指定した場合に使う
 		// Serve -> 引数にListenしたいポート情報を渡す
@@ -64,8 +64,18 @@ func run(ctx context.Context) error {
 		return nil
 	})
 
+	/*
+		1. <-ctx.Doneの次でhttp.Server.Shutdownメソッドが実行
+		2. 別ゴルーチンで実行してたhttp.Server.Serveが停止
+		3. 別ゴルーチンで実行していた無名関数 func()error が終了
+		4. run関数の最後で別ゴルーチンが終了するのを待機していたeg.waitメソッドが終了
+		5. 別ゴルーチンで実行していた無名関数 func() error の戻り値がrunの戻り値になる
+	*/
+
 	// チャネルからの通知(終了通知)を待機する
+	// 今回の場合だと、NotifyContextから受け取るSIGTERMなど
 	<-ctx.Done()
+
 	// ShutdownメソッドはGraceful Shutdownする
 	if err := s.Shutdown(context.Background()); err != nil {
 		log.Printf("failed to shutdown server: %v", err)
