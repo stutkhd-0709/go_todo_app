@@ -3,15 +3,16 @@ package handler
 import (
 	"encoding/json"
 	"github.com/go-playground/validator/v10"
+	"github.com/jmoiron/sqlx"
 	"github.com/stutkhd-0709/go_todo_app/entity"
 	"github.com/stutkhd-0709/go_todo_app/store"
 	"net/http"
-	"time"
 )
 
 // AddTask はhttp.HandleFunc型を満たすServeHTTPメソッドを実装している
 type AddTask struct {
-	Store     *store.TaskStore
+	DB        *sqlx.DB
+	Repo      *store.Repository
 	Validator *validator.Validate
 }
 
@@ -29,8 +30,7 @@ func (at *AddTask) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// bで定義したvalidateに合致してるか確認 -> titleが必ず入ってるかどうか
-	err := at.Validator.Struct(b)
-	if err != nil {
+	if err := at.Validator.Struct(b); err != nil {
 		RespondJSON(ctx, w, &ErrorResponse{
 			Message: err.Error(),
 		}, http.StatusBadRequest)
@@ -38,11 +38,10 @@ func (at *AddTask) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	t := &entity.Task{
-		Title:     b.Title,
-		Status:    entity.TaskStatusTodo,
-		CreatedAt: time.Now(),
+		Title:  b.Title,
+		Status: entity.TaskStatusTodo,
 	}
-	id, err := at.Store.Add(t)
+	err := at.Repo.AddTask(ctx, at.DB, t)
 	if err != nil {
 		RespondJSON(ctx, w, &ErrorResponse{
 			Message: err.Error(),
@@ -50,7 +49,7 @@ func (at *AddTask) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rsp := struct {
-		ID int `json:"id"`
-	}{ID: int(id)}
+		ID entity.TaskID `json:"id"`
+	}{ID: t.ID}
 	RespondJSON(ctx, w, rsp, http.StatusOK)
 }
