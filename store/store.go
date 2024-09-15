@@ -1,6 +1,15 @@
 package store
 
-import "github.com/stutkhd-0709/go_todo_app/entity"
+import (
+	"errors"
+	"github.com/stutkhd-0709/go_todo_app/entity"
+)
+
+var (
+	Tasks = &TaskStore{Tasks: map[entity.TaskID]*entity.Task{}}
+
+	ErrNotFound = errors.New("not found")
+)
 
 type TaskStore struct {
 	LastID entity.TaskID
