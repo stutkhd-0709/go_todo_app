@@ -7,12 +7,29 @@ name: test
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8
+        options: >-
+          --health-cmd "mysqladmin ping -h localhost"
+          --health-interval 20s
+          --health-timeout 10s
+          --health-retries 10
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: todo
+          MYSQL_USER: todo
+          MYSQL_PASSWORD: todo
     steps:
       - uses: actions/setup-go@v3
         with:
           go-version: '>=1.23'
       - uses: actions/checkout@v3
       # ./... はgolang特有のもので、特定のディレクトリとその配下のサブディレクトリ全てを含むことを意味する
-      - run: go test ./... -coverprofile=coverage.out
+      - run: |
+          go install github.com/sqldef/sqldef/cmd/mysqldef@latest
+          mysqldef -u todo -p todo -h 127.0.0.1 -P 3306 todo < ./_tools/mysql/schema.sql
       - name: report coverage
         uses: k1LoW/octocov-action@v0
