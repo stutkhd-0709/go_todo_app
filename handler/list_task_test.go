@@ -1,8 +1,9 @@
 package handler
 
 import (
+	"context"
+	"errors"
 	"github.com/stutkhd-0709/go_todo_app/entity"
-	"github.com/stutkhd-0709/go_todo_app/store"
 	"github.com/stutkhd-0709/go_todo_app/testutil"
 	"net/http"
 	"net/http/httptest"
@@ -18,17 +19,17 @@ func TestListTask(t *testing.T) {
 	}
 
 	tests := map[string]struct {
-		tasks map[entity.TaskID]*entity.Task
+		tasks []*entity.Task
 		want  want
 	}{
 		"ok": {
-			tasks: map[entity.TaskID]*entity.Task{
-				1: {
+			tasks: []*entity.Task{
+				{
 					ID:     1,
 					Title:  "test1",
 					Status: "todo",
 				},
-				2: {
+				{
 					ID:     2,
 					Title:  "test2",
 					Status: "done",
@@ -40,7 +41,7 @@ func TestListTask(t *testing.T) {
 			},
 		},
 		"empty": {
-			tasks: map[entity.TaskID]*entity.Task{},
+			tasks: []*entity.Task{},
 			want: want{
 				status:  http.StatusOK,
 				resFile: "testdata/list_task/empty_res.json.golden",
@@ -55,10 +56,15 @@ func TestListTask(t *testing.T) {
 			w := httptest.NewRecorder()
 			r := httptest.NewRequest(http.MethodGet, "/tasks", nil)
 
+			moq := &ListTasksServiceMock{ListTasksFunc: func(ctx context.Context) (entity.Tasks, error) {
+				if tc.tasks != nil {
+					return tc.tasks, nil
+				}
+				return nil, errors.New("mock error")
+			}}
+
 			sut := ListTask{
-				Store: &store.TaskStore{
-					Tasks: tc.tasks,
-				},
+				Service: moq,
 			}
 			sut.ServeHTTP(w, r)
 			resp := w.Result()
