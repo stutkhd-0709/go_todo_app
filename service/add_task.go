@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/stutkhd-0709/go_todo_app/auth"
 	"github.com/stutkhd-0709/go_todo_app/entity"
 	"github.com/stutkhd-0709/go_todo_app/store"
 )
@@ -13,7 +14,12 @@ type AddTask struct {
 }
 
 func (a *AddTask) AddTask(ctx context.Context, title string) (*entity.Task, error) {
+	id, ok := auth.GetUserID(ctx)
+	if !ok {
+		return nil, fmt.Errorf("cannot get user id from ctx")
+	}
 	t := &entity.Task{
+		UserID: id,
 		Title:  title,
 		Status: entity.TaskStatusTodo,
 	}

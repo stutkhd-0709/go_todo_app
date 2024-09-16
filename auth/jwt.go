@@ -118,8 +118,7 @@ func (j *JWTer) FillContext(r *http.Request) (*http.Request, error) {
 		return nil, err
 	}
 	ctx := SetUserID(r.Context(), uid)
-
-	ctx = SetRole(r.Context(), token)
+	ctx = SetRole(ctx, token)
 	/*
 		http.Requestはimmutableに設計されている。そのためcloneする必要がある
 		1. **不変性の維持**:

@@ -15,7 +15,6 @@ type AddTask struct {
 
 func (at *AddTask) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
 	// validateする内容を定義
 	var b struct {
 		Title string `json:"title" validate:"required"`
@@ -33,7 +32,6 @@ func (at *AddTask) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}, http.StatusBadRequest)
 		return
 	}
-
 	t, err := at.Service.AddTask(ctx, b.Title)
 	if err != nil {
 		RespondJSON(ctx, w, &ErrorResponse{
