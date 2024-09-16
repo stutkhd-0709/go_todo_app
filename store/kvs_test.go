@@ -61,7 +61,7 @@ func TestKVS_Load(t *testing.T) {
 		key := "TestKVS_Save_notFound"
 		ctx := context.Background()
 		got, err := sut.Load(ctx, key)
-		if err == nil || !errors.Is(err, redis.Nil) {
+		if err == nil || !errors.Is(err, ErrNotFound) {
 			t.Errorf("want %v, but got %v(value = %d)", redis.Nil, err, got)
 		}
 	})
