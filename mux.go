@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
+	"github.com/stutkhd-0709/go_todo_app/auth"
 	"github.com/stutkhd-0709/go_todo_app/clock"
 	"github.com/stutkhd-0709/go_todo_app/config"
 	"github.com/stutkhd-0709/go_todo_app/handler"
@@ -24,8 +25,26 @@ func NewMux(ctx context.Context, cfg *config.Config) (http.Handler, func(), erro
 	if err != nil {
 		return nil, cleanup, err
 	}
+	clocker := clock.RealClock{}
+	r := store.Repository{Clocker: clocker}
+	rcli, err := store.NewKVS(ctx, cfg)
+	if err != nil {
+		return nil, cleanup, err
+	}
+	jwter, err := auth.NewJWTer(rcli, clocker)
+	if err != nil {
+		return nil, cleanup, err
+	}
+	l := &handler.Login{
+		Service: &service.Login{
+			DB:             db,
+			Repo:           &r,
+			TokenGenerator: jwter,
+		},
+		Validate: v,
+	}
+	mux.Post("/login", l.ServeHTTP)
 
-	r := store.Repository{Clocker: clock.RealClock{}}
 	at := &handler.AddTask{Service: &service.AddTask{DB: db, Repo: &r}, Validator: v}
 	mux.Post("/tasks", at.ServeHTTP)
 	lt := &handler.ListTask{Service: &service.ListTask{DB: db, Repo: &r}}

@@ -1,6 +1,10 @@
 package entity
 
-import "time"
+import (
+	"fmt"
+	"golang.org/x/crypto/bcrypt"
+	"time"
+)
 
 type UserID int64
 
@@ -11,4 +15,11 @@ type User struct {
 	Role     string    `json:"role" db:"role"`
 	Created  time.Time `json:"created" db:"created"`
 	Modified time.Time `json:"modified" db:"modified"`
+}
+
+func (u *User) ComparePassword(pw string) error {
+	fmt.Println("aaaaaaaaaaaaaaaaaaaaa")
+	fmt.Println(u.Password)
+	fmt.Println(pw)
+	return bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(pw))
 }
